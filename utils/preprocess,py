@@ -1,0 +1,58 @@
+import os
+import numpy as np
+import pandas as pd
+from scipy.interpolate import CubicSpline
+from tqdm import tqdm
+
+def preprocess_pipeline(csi_raw):
+    """
+    你的最佳预处理流水线 (示例: Full_Path_D 逻辑)
+    csi_raw: (NT, NR, K, T) 复数矩阵
+    """
+    # 1. 提取幅度 (或者使用共轭处理: csi[:,:,:,:-1] * np.conj(csi[:,:,:,1:]))
+    amplitude = np.abs(csi_raw)
+    
+    # 2. 空间流合并 (MRC 或简单的 Mean)
+    # 结果维度: (K, T)
+    feature = np.mean(amplitude, axis=(0, 1))
+    
+    # 3. 归一化 (z-score)
+    mean = np.mean(feature, axis=1, keepdims=True)
+    std = np.std(feature, axis=1, keepdims=True) + 1e-8
+    feature = (feature - mean) / std
+    
+    # 4. 时间轴重采样 (Spline 插值到固定长度 500)
+    T_target = 500
+    T_current = feature.shape[1]
+    x_old = np.linspace(0, 1, T_current)
+    x_new = np.linspace(0, 1, T_target)
+    
+    cs = CubicSpline(x_old, feature, axis=1)
+    feature_resampled = cs(x_new) # 结果维度: (14, 500)
+    
+    return feature_resampled
+
+def prepare_training_data(samples_root, output_dir):
+    os.makedirs(output_dir, exist_ok=True)
+    files = [f for f in os.listdir(samples_root) if f.endswith('.npz')]
+    
+    for f in tqdm(files, desc="Preprocessing"):
+        data = np.load(os.path.join(samples_root, f), allow_pickle=True)
+        processed_samples = {}
+        
+        for s in data['samples']:
+            s_id = s['sample_id']
+            raw_csi = s['raw_feature']
+            label = s['label']
+            
+            # 执行流水线
+            processed_feature = preprocess_pipeline(raw_csi)
+            processed_samples[s_id] = {
+                'feature': processed_feature,
+                'label': label
+            }
+        
+        # 保存为处理后的文件
+        np.save(os.path.join(output_dir, f.replace('.npz', '.npy')), processed_samples)
+
+# prepare_training_data('/root/CSI_system/my_benchmark/samples', '/root/CSI_system/my_benchmark/processed')

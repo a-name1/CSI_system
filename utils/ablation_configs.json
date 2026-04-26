@@ -1,0 +1,101 @@
+[
+    {"name": "Full_Path_A_MRC_WLS_PCA",
+    "desc": "完整流水线 A：MRC 空间融合 + WLS 相位校准 + PCA+STFT 特征提取",
+    "op_switches": 
+    {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, "hampel": true,
+     "SG": true, "static_removal": true, "resample": true, "spline": true, "pca": true,"zscore" : false
+     }
+    },
+    {"name": "Full_Path_B_CONJ_PCA_zscore",
+    "desc": "完整流水线 B：Conjugate 物理差分 + PCA+STFT 特征提取（跳过 WLS）",
+    "op_switches": 
+    {"Unwrap": true, "conjugate": true, "wls": false, "agc": true, "hampel": true, 
+    "SG": true, "static_removal": true, "resample": true, "spline": true, "pca": true,"zscore" : false
+    }
+    },
+    {"name": "Full_Path_C_MRC_WLS_DFS",
+    "desc": "完整流水线 C：MRC 空间融合 + WLS 相位校准 + DFS+Δ+ΔΔ 特征提取",
+    "op_switches": {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, 
+    "hampel": true, "SG": true, "static_removal": true, "resample": true, "spline": true, "pca": false
+    }
+    },
+    {"name": "Full_Path_D_CONJ_DFS",
+    "desc": "完整流水线 D：Conjugate 物理差分 + DFS+Δ+ΔΔ 特征提取（跳过 WLS）",
+    "op_switches": 
+    {"Unwrap": true, "conjugate": true, "wls": false, "agc": true, "hampel": true, "SG": true, 
+    "static_removal": true, "resample": true, "spline": true, "pca": false, "zscore" : false
+    }
+    },
+    {"name": "Ablation_No_Unwrap",
+    "desc": "缺失环节：未进行相位解缠绕（验证解缠绕对相位校准的必要性）",
+    "op_switches": {"Unwrap": false, "conjugate": false, "wls": true, "agc": true, 
+    "hampel": true, "SG": true, "static_removal": true, "resample": true, "spline": true, "pca": true,"zscore" : false
+    }
+    },
+    {"name": "Ablation_No_Hampel",
+    "desc": "缺失环节：未进行 Hampel 滤波（验证异常值抑制的作用）",
+    "op_switches": 
+    {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, "hampel": false, 
+    "SG": true, "static_removal": true, "resample": true, "spline": true, "pca": true,"zscore" : false
+    }
+    },
+    {"name": "Ablation_No_SG",
+    "desc": "缺失环节：未进行 Savitzky-Golay 滤波（验证相位平滑的作用）",
+    "op_switches": 
+    {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, "hampel": true,
+     "SG": false, "static_removal": true, "resample": true, "spline": true, "pca": true,"zscore" : false
+     }
+    },
+    {"name": "Ablation_No_AGC",
+    "desc": "缺失环节：未进行 AGC 幅度校准（验证远近效应抑制的作用）",
+    "op_switches": {"Unwrap": true, "conjugate": false, "wls": true, "agc": false, 
+    "hampel": true, "SG": true, "static_removal": true, "resample": true, "spline": true, "pca": true,"zscore" : false
+    }
+    },
+    {"name": "Ablation_No_WLS",
+    "desc": "缺失环节：未进行 WLS 相位去斜（验证 SFO 压制的作用）",
+    "op_switches":
+     {"Unwrap": true, "conjugate": false, "wls": false, "agc": true, "hampel": true, "SG": true,
+      "static_removal": true, "resample": true, "spline": true, "pca": true,"zscore" : false
+      }
+    },
+    {"name": "Ablation_No_Static_Removal",
+    "desc": "缺失环节：未进行静态分量消除（验证基线漂移抑制的作用）",
+    "op_switches": 
+    {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, "hampel": true, "SG": true, 
+    "static_removal": false, "resample": true, "spline": true, "pca": true,"zscore" : false
+    }
+    },
+    {"name": "Ablation_Resample_PadOnly",
+    "desc": "消融对比：用补 0 替代线性插值重采样（验证重采样方式的影响）",
+    "op_switches": {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, "hampel": true, 
+    "SG": true, "static_removal": true, "resample": false, "spline": true, "pca": true,"zscore" : false
+    }
+    },
+    {"name": "Ablation_Spline_Linear",
+    "desc": "消融对比：用线性插值替代样条频率对齐（验证频率对齐方式的影响）",
+    "op_switches": 
+    {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, "hampel": true, "SG": true, 
+    "static_removal": true, "resample": true, "spline": false, "pca": true,"zscore" : false
+    }
+    },
+    {"name": "Ablation_PCA_vs_DFS",
+    "desc": "特征路径对比：用 DFS+Δ+ΔΔ 替代 PCA+STFT（验证特征提取方式的影响）",
+    "op_switches": {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, "hampel": true, 
+    "SG": true, "static_removal": true, "resample": true, "spline": true, "pca": false,"zscore" : false
+    }
+    },
+    {"name": "Baseline_Raw",
+    "desc": "基准对比：仅进行基本空间融合与格式化，无任何物理校准",
+    "op_switches": 
+    {"Unwrap": false, "conjugate": false, "wls": false, "agc": false, "hampel": false, 
+    "SG": false, "static_removal": false, "resample": false, "spline": false, "pca": false,"zscore" : false
+    }
+    },
+    {"name": "Baseline_Minimal",
+    "desc": "基准对比：极简流水线（仅空间融合 + 重采样对齐）",
+    "op_switches": {"Unwrap": false, "conjugate": false, "wls": false, "agc": false, 
+    "hampel": false, "SG": false, "static_removal": false, "resample": true, "spline": true, "pca": false,"zscore" : false
+    }
+    }
+]

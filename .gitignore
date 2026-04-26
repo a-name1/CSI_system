@@ -1,0 +1,42 @@
+# --- 1. Python 运行时与缓存 ---
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.env
+.venv/
+venv/
+env/
+
+# --- 2. 实验数据与权重 (重点排除) ---
+# 排除所有数据文件夹，通常这些文件太大，不适合进 Git
+data/
+my_benchmark/
+# 如果你有特定的模型权重保存目录（如 .pth, .h5, .ckpt）
+*.pth
+*.h5
+*.pkl
+*.npy
+
+# --- 3. 实验结果与可视化 ---
+# 排除消融实验生成的特征与图表
+ablation_processed_features_cross_dev/
+ablation_study_all/
+ablation_study_dev/
+tsne_ablation_plots/
+sample_cross_dev/
+# 排除日志文件
+*.log
+results/
+
+# --- 4. 操作系统与编辑器 ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# --- 5. 编译与分发 ---
+dist/
+build/
+*.egg-info/
