@@ -1,0 +1,9 @@
+[    
+    {"name": "Full_Path_A_MRC_WLS_PCA",
+    "desc": "完整流水线 A：MRC 空间融合 + WLS 相位校准 + PCA+STFT 特征提取",
+    "op_switches":
+    {"Unwrap": true, "conjugate": false, "wls": true, "agc": true, "hampel": true,
+     "SG": true, "static_removal": true, "resample": true, "spline": true, "pca": true,"zscore" : true
+     }
+    }
+]

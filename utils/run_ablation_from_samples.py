@@ -10,7 +10,7 @@ from config_manager import ConfigManager
 from pipeline_executor import PreprocessPipeline
 from data_manager import LocalFileCacheManager
 
-def run_targeted_ablation(target_users, target_envs, target_devices, samples_root, cache_root, config_path, device_type):
+def run_targeted_ablation(target_users, target_envs, target_devices, samples_root, cache_root, config_path):
     """
     核心消融逻辑函数
     """
@@ -62,7 +62,7 @@ def run_targeted_ablation(target_users, target_envs, target_devices, samples_roo
                 feat = pipeline.process_batch(
                     [sample['raw_feature']], 
                     [sample['time']], 
-                    device_type, 
+                    dev, 
                     cfg, 
                     is_training=True
                 )
@@ -94,9 +94,8 @@ def run_targeted_ablation(target_users, target_envs, target_devices, samples_roo
 if __name__ == "__main__":
     # --- 1. 路径与元数据配置 ---
     SAMPLES_ROOT = "/root/CSI_system/sample_cross_dev/raw"  # 刚才生成的 npz 存放目录
-    CACHE_ROOT = "/root/CSI_system/ablation_processed_features_cross_dev" # 消融特征存放根目录
-    CONFIG_PATH = "/root/CSI_system/utils/ablation_configs_dft.json"
-    DEVICE_TYPE = "INTEL_14"
+    CACHE_ROOT = "/root/CSI_system/ablation_add_new_pca" # 消融特征存放根目录
+    CONFIG_PATH = "/root/CSI_system/config/ablation_configs_dft.json"
     
     # --- 2. 实验目标白名单 (在这里精确指定你要处理的对象) ---
     TARGET_USERS = ["U02"]# 可以根据需要添加，如 ["U01", "U02", "U03", "U04", "U05", "U06"] 
@@ -128,8 +127,7 @@ if __name__ == "__main__":
             target_devices=TARGET_DEVICES,
             samples_root=SAMPLES_ROOT,
             cache_root=CACHE_ROOT,
-            config_path=CONFIG_PATH,
-            device_type=DEVICE_TYPE
+            config_path=CONFIG_PATH
         )
         
         print(f"\n🎉 指定范围的消融实验特征生成完毕！")

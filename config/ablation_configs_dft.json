@@ -1,0 +1,107 @@
+[
+    {
+        "name": "Full_A_MRC_WLS",
+        "desc": "完整流水线A：MRC + WLS + 幅度/相位分别PCA(3+3)",
+        "op_switches": {
+            "Unwrap": true,
+            "conjugate": false,
+            "wls": true,
+            "agc": true,
+            "hampel": true,
+            "SG": true,
+            "static_removal": true,
+            "resample": true,
+            "spline": true
+        }
+    },
+    {
+        "name": "Ablation_No_Denoise",
+        "desc": "消融：无去噪（Hampel/SG关闭）",
+        "op_switches": {
+            "Unwrap": true,
+            "conjugate": false,
+            "wls": true,
+            "agc": true,
+            "hampel": false,
+            "SG": false,
+            "static_removal": true,
+            "resample": true,
+            "spline": true
+        }
+    },
+    {
+        "name": "Ablation_No_AGC",
+        "desc": "消融：无AGC幅度校准",
+        "op_switches": {
+            "Unwrap": true,
+            "conjugate": false,
+            "wls": true,
+            "agc": false,
+            "hampel": true,
+            "SG": true,
+            "static_removal": true,
+            "resample": true,
+            "spline": true
+        }
+    },
+    {
+        "name": "Ablation_No_StaticRemoval",
+        "desc": "消融：无静态分量消除",
+        "op_switches": {
+            "Unwrap": true,
+            "conjugate": false,
+            "wls": true,
+            "agc": true,
+            "hampel": true,
+            "SG": true,
+            "static_removal": false,
+            "resample": true,
+            "spline": true
+        }
+    },
+    {
+        "name": "Ablation_Resample_PadOnly",
+        "desc": "消融：重采样仅补0（无插值）",
+        "op_switches": {
+            "Unwrap": true,
+            "conjugate": false,
+            "wls": true,
+            "agc": true,
+            "hampel": true,
+            "SG": true,
+            "static_removal": true,
+            "resample": false,
+            "spline": true
+        }
+    },
+    {
+        "name": "Ablation_Spline_Linear",
+        "desc": "消融：频域对齐用线性插值",
+        "op_switches": {
+            "Unwrap": true,
+            "conjugate": false,
+            "wls": true,
+            "agc": true,
+            "hampel": true,
+            "SG": true,
+            "static_removal": true,
+            "resample": true,
+            "spline": false
+        }
+    },
+    {
+        "name": "Baseline_Raw",
+        "desc": "基线：仅空口合并，无任何物理校准",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false
+        }
+    }
+]

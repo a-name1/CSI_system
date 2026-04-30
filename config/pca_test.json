@@ -1,0 +1,50 @@
+[
+        {
+        "name": "Baseline_Raw_no_pca",
+        "desc": "基线：仅空口合并，无任何物理校准",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+            {
+        "name": "Baseline_Raw_separate_pca",
+        "desc": "基线：仅空口合并，无任何物理校准",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "separate_pca"
+        }
+    },
+            {
+        "name": "Baseline_Raw_PCA_Joint",
+        "desc": "基线：仅空口合并，无任何物理校准",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "joint_pca"
+        }
+    }
+]

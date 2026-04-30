@@ -28,7 +28,9 @@ sample_cross_dev/
 # 排除日志文件
 *.log
 results/
-
+LODO_SAFE_PREPROCESSED/
+TaskName/
+ablation*/
 # --- 4. 操作系统与编辑器 ---
 .DS_Store
 Thumbs.db

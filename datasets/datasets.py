@@ -1,31 +1,46 @@
-import torch
-from torch.utils.data import Dataset, DataLoader
+import os
+import json
+import h5py
+import pandas as pd
+import numpy as np
 
-class CSILODODataset(Dataset):
-    def __init__(self, split_json_path, processed_dir):
-        with open(split_json_path, 'r') as f:
-            self.sample_ids = json.load(f)['sample_ids']
-        self.processed_dir = processed_dir
+class TaskDatasetLoader:
+    def __init__(self, task_root="/root/CSI_system/TaskName"):
+        self.root = task_root
+        self.meta_path = os.path.join(task_root, "metadata/sample_metadata.csv")
+        self.label_path = os.path.join(task_root, "metadata/label_mapping.json")
         
-        # 预加载映射索引 (加速读取)
-        self.data_cache = {}
-        self._build_index()
+        # 加载元数据 + 标签
+        self.metadata = pd.read_csv(self.meta_path)
+        with open(self.label_path, 'r') as f:
+            self.label_map = json.load(f)
+        self.idx2label = {v: k for k, v in self.label_map.items()}
 
-    def _build_index(self):
-        # 建立 sample_id 到 npy 文件名的映射
-        for f in os.listdir(self.processed_dir):
-            if f.endswith('.npy'):
-                # 这种方式虽然费点内存，但训练速度提升 10 倍以上
-                file_data = np.load(os.path.join(self.processed_dir, f), allow_pickle=True).item()
-                self.data_cache.update(file_data)
+    def load_csi(self, file_path):
+        """读取单个CSI样本h5文件"""
+        full_path = os.path.join(self.root, file_path)
+        with h5py.File(full_path, 'r') as f:
+            csi = f['csi'][:]
+            label = f.attrs['label']
+        return csi, label
 
-    def __len__(self):
-        return len(self.sample_ids)
-
-    def __getitem__(self, idx):
-        s_id = self.sample_ids[idx]
-        sample = self.data_cache[s_id]
+    def get_samples_by_ids(self, sample_ids):
+        """根据sample_id加载批量数据（LODO专用）"""
+        X, y = [], []
+        df = self.metadata[self.metadata['sample_id'].isin(sample_ids)]
         
-        x = torch.from_numpy(sample['feature']).float() # (14, 500)
-        y = torch.tensor(sample['label']).long()
-        return x, y
+        for _, row in df.iterrows():
+            csi, label = self.load_csi(row['file_path'])
+            X.append(csi)
+            y.append(label)
+        
+        # 统一数据形状（适配模型输入）
+        X = np.array(X).astype(np.float32)
+        y = np.array(y).astype(np.int64)
+        return X, y
+
+    def load_split(self, split_name):
+        """加载划分文件：train_id/val_id/test_cross_user等"""
+        split_path = os.path.join(self.root, f"splits/{split_name}.json")
+        with open(split_path, 'r') as f:
+            return json.load(f)['sample_ids']

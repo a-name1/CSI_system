@@ -1,345 +1,225 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from pathlib import Path
-from typing import List, Dict, Tuple
-from ablation_base import BasePreprocessOp
-from preprocess_ops import *
-from config_manager import AblationConfig
-from preprocess_ops import FREQ_TABLES
+from typing import List, Dict
+import sys
+sys.path.append(str(Path(__file__).parent.parent))
 
-# 绘图函数：确保每步都有幅度/相位对比
-import matplotlib.pyplot as plt
-from pathlib import Path    
-def save_step_dual(amp, phase, step_name, filename):
-                # --- 初始化 ---
-        output_dir = Path("./pipeline_steps_detailed")
-        output_dir.mkdir(exist_ok=True)
-        plt.rcParams['font.family'] = 'serif'
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5), dpi=150)
-        # 左图：幅度
-        ax1.plot(amp.T, lw=0.6)
-        ax1.set_title(f"{step_name} - Amplitude")
-        ax1.set_ylabel("Magnitude")
-        ax1.grid(True, linestyle=':', alpha=0.6)
-        
-        # 右图：相位
-        ax2.plot(phase.T, lw=0.6)
-        ax2.set_title(f"{step_name} - Phase")
-        ax2.set_ylabel("Phase (rad)")
-        ax2.grid(True, linestyle=':', alpha=0.6)
-        
-        plt.suptitle(f"Pipeline Visualization: {step_name}", fontsize=14, fontweight='bold')
-        plt.tight_layout()
-        plt.savefig(output_dir / filename, bbox_inches='tight')
-        plt.close()
-        print(f"--- [Exported] {filename} ---")
+from utils.ablation_base import BasePreprocessOp
+from utils.preprocess_ops import *
+from utils.config_manager import AblationConfig
+import matplotlib
 
+matplotlib.use("Agg")
+plt.rcParams["font.sans-serif"] = ["WenQuanYi Zen Hei"]
+plt.rcParams["axes.unicode_minus"] = False
+
+# ===================== 统一字体大小 =====================
+FONT_MAIN = 24
+FONT_SUB = 20
+FONT_AXIS = 18
+FONT_TICK = 14
+
+# 绘图：幅度/相位
+def save_step_dual(amp, phase, t_sec, step_name_zh, filename, agc=False):
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8), dpi=150)
+    t_len = min(amp.shape[1], len(t_sec))
+    time_axis = t_sec[:t_len]
+    amp_plot = amp[:, :t_len]
+    phase_plot = phase[:, :t_len]
+
+    ax1.plot(time_axis, amp_plot.T, lw=1.0)
+    ax1.set_title(f"{step_name_zh} - 幅度", fontsize=FONT_SUB, pad=20)
+    ax1.set_xlabel("时间 (秒, s)", fontsize=FONT_AXIS)
+    ax1.set_ylabel("归一化信道增益 |H| (AGC校准)" if agc else "幅度 |H| (线性幅值)", fontsize=FONT_AXIS)
+    ax1.tick_params(labelsize=FONT_TICK)
+    ax1.grid(True, linestyle=':', alpha=0.6)
+
+    ax2.plot(time_axis, phase_plot.T, lw=1.0)
+    ax2.set_title(f"{step_name_zh} - 相位", fontsize=FONT_SUB, pad=20)
+    ax2.set_xlabel("时间 (秒, s)", fontsize=FONT_AXIS)
+    ax2.set_ylabel("相位 ∠H (rad)", fontsize=FONT_AXIS)
+    ax2.tick_params(labelsize=FONT_TICK)
+    ax2.grid(True, linestyle=':', alpha=0.6)
+
+    plt.suptitle(f"CSI 处理步骤：{step_name_zh}", fontsize=FONT_MAIN, fontweight='bold', y=0.98)
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+    output_dir = Path("./pipeline_steps_detailed")
+    output_dir.mkdir(exist_ok=True)
+    plt.savefig(output_dir / filename, bbox_inches='tight')
+    plt.close()
+    print(f"已导出：{filename}")
+
+# 绘图：PCA
+def save_step_pca(pca_out_list, t_sec, filename="step07_pca.png"):
+    sample_pca = np.array(pca_out_list[0])
+    new_len = sample_pca.shape[0]
+    time_axis = np.linspace(0, t_sec[-1], new_len)
+    plt.figure(figsize=(12,7), dpi=150)
+    plot_count = min(3, sample_pca.shape[1] if sample_pca.ndim>1 else 1)
+    plt.plot(time_axis, sample_pca[:,:plot_count], lw=1.5)
+    plt.title("PCA 主成分", fontsize=FONT_MAIN, fontweight='bold')
+    plt.xlabel("时间 (s)", fontsize=FONT_AXIS)
+    plt.ylabel("幅值", fontsize=FONT_AXIS)
+    plt.legend([f"PC{i+1}" for i in range(plot_count)])
+    plt.grid(alpha=0.7)
+    output_dir = Path("./pipeline_steps_detailed")
+    output_dir.mkdir(exist_ok=True)
+    plt.tight_layout()
+    plt.savefig(output_dir / filename)
+    plt.close()
+
+# 绘图：STFT时频图
+def save_step_stft(final_feat, filename="step08_final_stft.png", fs=100):
+    fig, axes = plt.subplots(1,3,figsize=(20,8),dpi=150,constrained_layout=True)
+    n_freq = final_feat.shape[1]
+    n_frames = final_feat.shape[2]
+    freq_axis = np.linspace(0, fs/2, n_freq)
+    time_axis = np.linspace(0, n_frames/fs, n_frames)
+    is_phase = "pha" in filename
+    chan_num = min(3, final_feat.shape[0])
+    plot_data = [np.abs(final_feat[i]) for i in range(chan_num)]
+    vmin, vmax = np.min([d.min() for d in plot_data]), np.max([d.max() for d in plot_data])
+
+    for i in range(chan_num):
+        im = axes[i].pcolormesh(time_axis, freq_axis, plot_data[i], shading='auto', cmap='jet', vmin=vmin, vmax=vmax)
+        axes[i].set_title(f"{'相位' if is_phase else '幅度'} PC{i+1}", fontsize=18)
+        axes[i].set_xlabel("时间 (s)", fontsize=16)
+        axes[i].set_ylabel("频率 (Hz)", fontsize=16)
+    cbar = fig.colorbar(im, ax=axes, fraction=0.02)
+    cbar.set_label("幅度")
+    plt.suptitle("时频特征图", fontsize=24, fontweight='bold')
+    output_dir = Path("./pipeline_steps_detailed")
+    output_dir.mkdir(exist_ok=True)
+    plt.savefig(output_dir / filename, bbox_inches='tight')
+    plt.close()
+    print(f"已保存：{filename}")
+
+# ===================== 主流水线 =====================
 class PreprocessPipeline:
-    def __init__(
-        self,
-        target_len=360,
-        target_k=30,
-        target_fs=100,
-        n_components=3,
-        model_input_T=128,
-        model_input_F=32
-    ):
-        """
-        更新后的流水线：集成了 MIMO 融合、共轭相乘特征和静态消除
-        """
+    def __init__(self, target_len=360, target_k=30, target_fs=100, n_components=3):
+        self.target_len = target_len
+        self.target_k = target_k
+        self.target_fs = target_fs
+        self.n_components = n_components
+
         self.ops: Dict[str, List[BasePreprocessOp]] = {
-            #相位解缠绕
             "PhaseUnwrap": [PhaseUnwrapOp()],
-            # 空间处理算子
-            "mimo": [MIMOCombineOp()], 
-            "conj": [ConjugateCorrelationOp()],            
-            # 基础净化算子
-            "Hampel": [HampelFilterOp()], # 调优参数
-            "SavitzkyGolay": [SavitzkyGolayOp()], # 调优参数
-            "agc": [AGCOp()], # 内部可改为 Log-AGC
-            "wls": [EnhancedWLSPhaseOp()], # 增强版：含锚点展开和时间去趋势
-            "static_removal": [ButterworthStaticRemovalOp(mode="timestamp", cutoff_freq=0.3)], # 1秒滑动窗口            
-            "static_removal_abletion": [MovingAverageStaticRemovalOp()],
-            # 对齐算子
-            "resample": [TimeResizeOp()],
-            "resample_ablation": [PadOnlyTimeResizeOp()],
-            "spline": [SplineFreqAlignOp()],
-            "spline_ablation": [LinearFreqResizeOp()],           
-            # 后处理算子
-            "pca": [PCAOp()],
-            "stft": [STFTOp()], # 增加重叠度提高平滑性
+            "mimo": [MIMOCombineOp()],
+            "conj": [ConjugateCorrelationOp()],
+            "Hampel": [HampelFilterOp()],
+            "SavitzkyGolay": [SavitzkyGolayOp()],
+            "agc": [AGCOp()],
+            "wls": [EnhancedWLSPhaseOp()],
+            "static_removal": [ButterworthStaticRemovalOp(mode="timestamp", cutoff_freq=0.3)],
+            "resample": [TimeResizeOp(target_len=target_len)],
+            "resample_ablation": [PadOnlyTimeResizeOp(target_len=target_len)],
+            "spline": [SplineFreqAlignOp(target_k=target_k)],
+            "spline_ablation": [LinearFreqResizeOp(target_k=target_k)],
+            "pca": [PostSTFTPCAOp(n_components=n_components)],
+            "stft": [PerCarrierSTFTOp(fs=target_fs)],
+            "norm": [STFTCarrierNormOp()],
             "zscore": [ZScoreNormOp()],
-            "dim_align": [DimAlignOp()],
-            #dft
-            "DFSExtraction": [DFSExtractionOp()],
-            "RobustScaleOp":[RobustScaleOp()],
+            "Channels": [ComplexToChannelsOp()]
         }
 
-    def process_batch(
-        self,
-        csi_list: List[np.ndarray], # [N, Nt, Nr, K, T]
-        time_list: List[np.ndarray],
-        device_type: str,
-        config: AblationConfig,
-        is_training: bool = False
-    ) -> np.ndarray:
-        """批量执行预处理流水线"""
-        op_switches = config.op_switches
-        raw_freq = FREQ_TABLES.get(device_type, np.linspace(-28, 28, 30))
+    def process_batch(self, csi_list: List[np.ndarray], time_list: List[np.ndarray],
+                      device_type: str, config: AblationConfig, is_training=False) -> np.ndarray:
+        op_sw = config.op_switches
+        raw_freq = FREQ_TABLES.get(device_type, np.linspace(-28,28,self.target_k))
+        t_sec_list = [(t-t[0])/1e6 for t in time_list]
+        processed_csi = []
+        strategy_map = []
 
-# --------------------------
-        # Step 0: 空间维度决策引擎 (MIMO vs. Conjugate vs. SISO)
-        # --------------------------
-        is_conj_sw = op_switches.get("conjugate")
-        processed_csi_list = []
-        t_sec_list = [(t - t[0]) / 1e6 for t in time_list]
-        # 策略标记：用于下游决定是否触发 WLS
-        # 0: CONJ_EGC (相对相位路径, 跳过WLS)
-        # 1: MRC_WLS  (绝对相位路径, 需要WLS)
-        # 2: SISO_WLS (单天线退化路径, 强制WLS)
-        strategy_map = [] 
-
-        # # 绘图：处理前的原始状态（取第一个样本的第一根天线观测）
-        # save_step_dual(
-        #     np.abs(csi_list[0][0, 0, :, :]), 
-        #     np.angle(csi_list[0][0, 0, :, :]),
-        #     "Raw CSI (Hardware Non-ideal Phase)",
-        #     "step00_raw_input.png"
-        # )
-        
+        # 相位解缠绕
         for csi in csi_list:
-            nt, nr, n_sub, n_time = csi.shape
-            if op_switches.get("Unwrap", True):
+            if op_sw.get("Unwrap", True):
                 csi = self.ops["PhaseUnwrap"][0].transform(csi)
-            else:
-                pass
-            total_links = nr * nt
-            if nr * nt == 1:
-                print(f"警告：样本 {i} 是单天线数据，无法执行路径 B (Conjugate)！")            
-            # --- 场景 A: 满足共轭相乘条件 (多天线 + 开关开启) ---
-            if is_conj_sw and total_links > 1:
-                # 1. 物理差分：提取相对信道特征，消除共模噪声
-                csi_feat = self.ops["conj"][0].transform(csi)
-                
-                # 2. 空间压平：由于共轭已完成相位对齐，此处使用 EGC (等权平均) 抑制白噪声
-                if csi_feat.ndim > 2:
-                    # np.mean 即为 EGC 在此处的物理实现
-                    csi_feat = np.mean(csi_feat, axis=(0, 1))
-                # 3. 彻底降维：将残留的 size-1 维度全部删掉，确保变为 (K, T)
-                csi_feat = np.squeeze(csi_feat)
-                
-                # 这里的保险检查：确保最终只有 2 维
-                if csi_feat.ndim != 2:
-                    # 万一 Nt 或 Nr 的均值没压干净，强制取最后一层
-                    csi_feat = csi_feat.reshape(-1, n_time)[-n_sub:, :]
+            nt, nr, K, T = csi.shape
+            total_links = nt*nr
+
+            # MIMO/共轭/SISO
+            if op_sw.get("conjugate") and total_links>1:
+                cf = self.ops["conj"][0].transform(csi)
+                cf = np.squeeze(np.mean(cf, axis=(0,1)))
                 strategy_map.append("CONJ_EGC")
-                
-            # --- 场景 B: 多天线绝对相位恢复 (MIMO 路径) ---
-            elif total_links > 1:
-                # 1. 空间融合：使用 MRC 最大比合并提升 SNR
-                csi_feat = self.ops["mimo"][0].transform(csi)
-                
+            elif total_links>1:
+                cf = self.ops["mimo"][0].transform(csi)
                 strategy_map.append("MRC_WLS")
-                
-            # --- 场景 C: 单天线退化 (SISO) ---
             else:
-                # 直接降维，由于无空间自由度，MRC/EGC 均退化为原始信号
-                csi_feat = csi.squeeze((0, 1))
+                cf = csi.squeeze((0,1))
                 strategy_map.append("SISO_WLS")
-                
-            processed_csi_list.append(csi_feat)
+            processed_csi.append(cf)
 
-        # --------------------------
-        # Step 1: 相位校准策略自适应 (数学拟合 vs. 物理对冲)
-        # --------------------------
-        amp_list = [np.abs(h) for h in processed_csi_list]
-        phase_list = [np.angle(h) for h in processed_csi_list]
+        amp_list = [np.abs(h) for h in processed_csi]
+        phase_list = [np.angle(h) for h in processed_csi]
 
-        # 核心逻辑：只有非共轭路径（MRC 或 SISO）才需要 WLS 进行去斜率
-        # 共轭路径（CONJ_EGC）由于已物理对冲，相位已水平，跳过 WLS 以防过拟合
-        for i in range(len(processed_csi_list)):
-            current_s = strategy_map[i]
-            
-            if current_s in ["MRC_WLS", "SISO_WLS"] and op_switches.get("wls", True):
-                wls_op = self.ops["wls"][0]
-                phase_list[i] = wls_op.transform(
-                    (phase_list[i], amp_list[i])
-                )
-                # print(f"Sample {i}: 路径 {current_s} -> 执行 WLS 数学校准")
-                # logger.debug(f"Sample {i}: 路径 {current_s} -> 执行 WLS 数学校准")
-            else:
-                # print(f"Sample {i}: 路径 {current_s} -> 物理去噪已完成，跳过 WLS")
-                # logger.debug(f"Sample {i}: 路径 {current_s} -> 物理去噪已完成，跳过 WLS")
-                pass
+        # WLS相位校准
+        for i in range(len(processed_csi)):
+            s = strategy_map[i]
+            if s in ["MRC_WLS","SISO_WLS"] and op_sw.get("wls",True):
+                phase_list[i] = self.ops["wls"][0].transform((phase_list[i], amp_list[i]), device_type=device_type)
 
-        # # 绘图：展示最终校准效果（此时相位应呈现水平且清晰的演变趋势）
-        # # 标注当前采用的全局决策策略
-        # final_strategy = strategy_map[0] if len(set(strategy_map)) == 1 else "HYBRID"
-        # save_step_dual(
-        #     amp_list[0], phase_list[0], 
-        #     f"Phase After Calibration ({final_strategy})", 
-        #     "step01_final.png"
-        # )
-        # --------------------------
-        # Step 2: AGC
-        # --------------------------
-        if op_switches.get("agc", True):
-            agc_op = self.ops["agc"][0]
-            amp_list = [agc_op.transform(amp) for amp in amp_list]
-        
-        # print(f"AGC处理后样本数: {len(amp_list)}, 单样本形状: {amp_list[0].shape}")
-        # save_step_dual(
-        #     amp_list[0],
-        #     phase_list[0],
-        #     "After AGC (First Sample, First Rx-Tx Pair)",
-        #     "step05_agc.png"
-        # )
-        # --------------------------
-        # Step 3: 基础去噪 Hampel
-        # --------------------------
-        if op_switches.get("hampel", True):
-            amp_list = [self.ops["Hampel"][0].transform(amp) for amp in amp_list]
-        # --------------------------
-        # Step 4: 基础去噪 SG
-        # --------------------------
-        if op_switches.get("SG", True):
-            phase_list = [self.ops["SavitzkyGolay"][0].transform(phase) for phase in phase_list]
-        
-        # print(f"去噪处理后样本数: {len(amp_list)}, 单样本形状: {amp_list[0].shape}")
+        # AGC
+        if op_sw.get("agc",True):
+            new_amp = []
+            for a, t in zip(amp_list, t_sec_list):
+                dur = t[-1]-t[0]
+                fs = len(t)/dur if dur>0 else 20
+                new_amp.append(self.ops["agc"][0].transform(a, fs=fs))
+            amp_list = new_amp
 
-        # save_step_dual(
-        #     amp_list[0],
-        #     phase_list[0],
-        #     "After Denoising (First Sample, First Rx-Tx Pair)",
-        #     "step03_denoise.png"
-        # )
-        # --------------------------
-        # Step 5: 静态消除 (针对 LODO 的核心)
-        # --------------------------
-        if op_switches.get("static_removal", True):
-            sr_op = self.ops["static_removal"][0]
-            amp_list = [
-                sr_op.transform(amp, t_sec=t_sec) 
-                for amp, t_sec in zip(amp_list, t_sec_list)
-            ]
+        # 去噪
+        if op_sw.get("hampel",True):
+            amp_list = [self.ops["Hampel"][0].transform(a) for a in amp_list]
+        if op_sw.get("SG",True):
+            phase_list = [self.ops["SavitzkyGolay"][0].transform(p) for p in phase_list]
 
-        # 注意：相位通常不进行静态消除，因为相位差已经具备类似的物理意义
+        # 静态消除
+        if op_sw.get("static_removal",True):
+            sr = self.ops["static_removal"][0]
+            amp_list = [sr.transform(a, t_sec=t) for a,t in zip(amp_list, t_sec_list)]
 
-        # print(f"静态消除处理后样本数: {len(amp_list)}, 单样本形状: {amp_list[0].shape}")
+        # 重采样 + 频域对齐
+        res_op = self.ops["resample"][0] if op_sw.get("resample",True) else self.ops["resample_ablation"][0]
+        align_op = self.ops["spline"][0] if op_sw.get("spline",True) else self.ops["spline_ablation"][0]
 
-        # save_step_dual(
-        #     amp_list[0],
-        #     phase_list[0],
-        #     "After Static Removal (First Sample, First Rx-Tx Pair)",
-        #     "step04_static_removal.png"
-        # )
-        
-        # --------------------------
-        # Step 5: 时间重采样 & 频率对齐 (归一化到统一 shape)
-        # --------------------------
-        res_op = self.ops["resample"][0] if op_switches.get("resample", True) else self.ops["resample_ablation"][0]
-        align_op = self.ops["spline"][0] if op_switches.get("spline", True) else self.ops["spline_ablation"][0]
+        proc_amp, proc_phase = [], []
+        for a,p,t in zip(amp_list, phase_list, t_sec_list):
+            a_t = res_op.transform(a)
+            p_t = res_op.transform(p)
+            a_f = align_op.transform(a_t, raw_freq=raw_freq)
+            p_f = align_op.transform(p_t, raw_freq=raw_freq)
+            proc_amp.append(a_f)
+            proc_phase.append(p_f)
 
-        joint_feat_list = []
-        for amp, phase, t_sec in zip(amp_list, phase_list, t_sec_list):
-            # 注意：这里的 amp 需要是 [K, T] 还是 [T, K] 取决于 res_op 的实现
-            # 假设 res_op 内部处理的是 [T, K]
-            a_t = res_op.transform(amp.T, t_sec=t_sec)
-            p_t = res_op.transform(phase.T, t_sec=t_sec)
-            
-            a_final = align_op.transform(a_t, raw_freq=raw_freq)
-            p_final = align_op.transform(p_t, raw_freq=raw_freq)
-            
-            joint_feat_list.append(np.concatenate([a_final, p_final], axis=1))
-        
-        # # 修正 1：打印列表长度和单个样本形状
-        # print(f"时间重采样 & 频率对齐处理后样本数: {len(joint_feat_list)}, 单样本形状: {joint_feat_list[0].shape}")
+        # STFT + PCA + 通道变换
+        stft = self.ops["stft"][0]
+        norm = self.ops["norm"][0]
+        pca = self.ops["pca"][0]
+        to_ch = self.ops["Channels"][0]
+        zscore = self.ops["zscore"][0]
+        final = []
 
-        # # 修正 2：绘图逻辑
-        # # 取最后一个处理完的样本 (a_final, p_final) 进行可视化
-        # # 传入 [T, K] 矩阵，save_step_dual 内部会画出所有子载波随时间变化的曲线
-        # save_step_dual(
-        #     a_final.T, # 转置回 [K, T] 以符合 save_step_dual 的绘图习惯
-        #     p_final.T,
-        #     "After Time Resampling & Frequency Alignment",
-        #     "step05_resample_align.png"
-        # )
-# --------------------------
-        # Step 6: PCA -> STFT -> DimAlign
-        # --------------------------
-        if op_switches.get("PCA", True):
-            pca_op = self.ops["pca"][0]
-            stft_op = self.ops["stft"][0]
-            if op_switches.get("zscore", True):
-                norm_op = self.ops["zscore"][0]
-            else:
-                norm_op = self.ops["RobustScaleOp"][0]
-            dim_align_op = self.ops["dim_align"][0]
-            if is_training:
-                pca_op.fit(joint_feat_list)        
-            # 1. 先生成所有样本的 PCA 结果
-            pca_out_list = [pca_op.transform(jf) for jf in joint_feat_list]
-        
-            # # 2. 修正绘图：取第一个样本可视化
-            # sample_pca = pca_out_list[0] # 形状通常为 (target_len, n_components) -> (360, 3)
-            # print(f"PCA处理后样本数: {len(pca_out_list)}, 单样本形状: {pca_out_list[0].shape}")
-            # plt.figure(figsize=(10, 4), dpi=100)
-            # plt.plot(sample_pca, lw=1.2)
-            # plt.title("Step 6: PCA Reduced Features (Top 3 Components)")
-            # plt.legend(['PC1', 'PC2', 'PC3'])
-            # plt.xlabel("Time Samples")
-            # plt.ylabel("Amplitude")
-            # plt.grid(True, linestyle=':', alpha=0.7)
-            # plt.savefig(Path("./pipeline_steps_detailed") / "06_pca.png")
-            # plt.close()       
-            final_features = []
-            for pca_out in pca_out_list:
-                # 执行 STFT 并内部剔除 0Hz
-                spec = stft_op.transform(pca_out)
-                spec_norm = norm_op.fit_transform(spec)
-                # 对齐到 CNN 输入尺寸 [3, 64, 32]
-                final_feat = dim_align_op.transform(spec_norm)
-                final_features.append(final_feat)
+        for a, p in zip(proc_amp, proc_phase):
 
-            # # 3. 修正绘图：展示最后一个处理完的 final_feat
-            # print(f"final_stft处理后样本数: {len(final_feat)}, 单样本形状: {final_feat[0].shape}")
-            # fig, axes = plt.subplots(1, 3, figsize=(18, 5), dpi=120)
-            # for i in range(min(3, final_feat.shape[0])):
-            #     # final_feat[i] 形状为 (64, 32) -> (Time, Freq)
-            #     # 转置是为了让频率轴作为纵轴，时间轴作为横轴，符合常规频谱图习惯
-            #     im = axes[i].pcolormesh(final_feat[i].T, shading='gouraud', cmap='jet')
-            #     axes[i].set_title(f"PC{i+1} Spectrogram (64x32)")
-            #     axes[i].set_xlabel("Time Bin")
-            #     axes[i].set_ylabel("Frequency Bin")
-            #     plt.colorbar(im, ax=axes[i])
-                
-            # plt.suptitle("Step 7: Final Model Input Features (Normalized STFT)", fontsize=14, fontweight='bold')
-            # plt.tight_layout()
-            # plt.savefig(Path("./pipeline_steps_detailed") / "07_final_stft.png")
-            # plt.close()
-            # print("数据处理完成。")
-            # input("按下回车键以继续执行后续逻辑...")
-            # print("继续运行中...")
-            # 返回形状为 (Batch, 3, 64, 32) 的四维张量
-            return np.stack(final_features, axis=0)
-        else:
-            dfs = self.ops["DFSExtraction"][0]
-            RobustScalenorm_spec = self.ops["RobustScaleOp"][0]
-            RobustScalenorm_d1 = self.ops["RobustScaleOp"][0]
-            RobustScalenorm_d2 = self.ops["RobustScaleOp"][0]
-            # joint_feat_arr: [T, 2K]
-            joint_feat_arr = np.array(joint_feat_list)
-            spec = dfs.transform(joint_feat_arr)
-            spec = RobustScalenorm_spec.fit_transform(spec)
+            h = a * np.exp(1j * p)
 
-                # Δ + ΔΔ（增强动态信息）
-            d1 = np.diff(spec_norm, axis=-1, prepend=spec_norm[..., [0]])
-            d2 = np.diff(d1, axis=-1, prepend=d1[..., [0]])
+            stft_map = stft.transform(h)  # [K,F,T] complex
 
-            d1_norm = RobustScalenorm_d1.fit_transform(d1)
-            d2_norm = RobustScalenorm_d2.fit_transform(d1)
-            stacked = np.stack([spec_norm, d1_norm, d2_norm], axis=0)
+            mag = np.abs(stft_map)
+            phase = np.angle(stft_map)
 
-            final_feat = dim_align_op.transform(stacked)
-            final_features.append(final_feat)
-            return np.stack(final_features, axis=0)
+            feat = np.concatenate([
+                mag,
+                np.sin(phase),
+                np.cos(phase)
+            ], axis=0).astype(np.float32)
+
+            final.append(feat)
+
+        final = np.array(final)
+        if is_training:
+            zscore.fit(final)
+        final = zscore.transform(final)
+        return final

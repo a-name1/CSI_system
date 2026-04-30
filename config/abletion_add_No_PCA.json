@@ -1,0 +1,178 @@
+[
+    {
+        "name": "Baseline_Raw",
+        "desc": "基线：仅空口合并，无任何物理校准",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_Unwrap",
+        "desc": "仅加：相位解缠绕",
+        "op_switches": {
+            "Unwrap": true,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_Conjugate",
+        "desc": "仅加：共轭对称",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": true,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_WLS",
+        "desc": "仅加：加权最小二乘",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": true,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_AGC",
+        "desc": "仅加：自动增益校准",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": true,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_Hampel",
+        "desc": "仅加：异常值剔除",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": true,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_SG",
+        "desc": "仅加：SG滤波",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": true,
+            "static_removal": false,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_StaticRemoval",
+        "desc": "仅加：静态分量去除",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": true,
+            "resample": false,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_Resample",
+        "desc": "仅加：重采样",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": true,
+            "spline": false,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "Only_Spline",
+        "desc": "仅加：样条插值",
+        "op_switches": {
+            "Unwrap": false,
+            "conjugate": false,
+            "wls": false,
+            "agc": false,
+            "hampel": false,
+            "SG": false,
+            "static_removal": false,
+            "resample": false,
+            "spline": true,
+            "abl_mode": "no_pca"
+        }
+    },
+    {
+        "name": "All_Preprocess",
+        "desc": "全部预处理全开",
+        "op_switches": {
+            "Unwrap": true,
+            "conjugate": true,
+            "wls": false,
+            "agc": true,
+            "hampel": true,
+            "SG": true,
+            "static_removal": true,
+            "resample": true,
+            "spline": true,
+            "abl_mode": "no_pca"
+        }
+    }
+]
